@@ -1,32 +1,26 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 import { createCanvasFromMedia, NetInput, toNetInput } from '../../../src';
-import { FaceExpressionPrediction } from '../../../src/faceExpressionNet/types';
-import { loadImage } from '../../env';
-import { describeWithNets, expectAllTensorsReleased } from '../../utils';
+import { FaceExpressions } from '../../../src/faceExpressionNet/FaceExpressions';
+import { getTestEnv } from '../../env';
+import { describeWithBackend, describeWithNets, expectAllTensorsReleased } from '../../utils';
 
-describe('faceExpressionNet', () => {
+describeWithBackend('faceExpressionNet', () => {
 
   let imgElAngry: HTMLImageElement
   let imgElSurprised: HTMLImageElement
 
   beforeAll(async () => {
-    imgElAngry = await loadImage('test/images/angry_cropped.jpg')
-    imgElSurprised = await loadImage('test/images/surprised_cropped.jpg')
+    imgElAngry = await getTestEnv().loadImage('test/images/angry_cropped.jpg')
+    imgElSurprised = await getTestEnv().loadImage('test/images/surprised_cropped.jpg')
   })
 
   describeWithNets('quantized weights', { withFaceExpressionNet: { quantized: true } }, ({ faceExpressionNet }) => {
 
     it('recognizes facial expressions', async () => {
-      const result = await faceExpressionNet.predictExpressions(imgElAngry) as FaceExpressionPrediction[]
-
-      expect(Array.isArray(result)).toBe(true)
-      expect(result.length).toEqual(7)
-
-      const angry = result.find(res => res.expression === 'angry') as FaceExpressionPrediction
-
-      expect(angry).not.toBeUndefined()
-      expect(angry.probability).toBeGreaterThan(0.95)
+      const result = await faceExpressionNet.predictExpressions(imgElAngry) as FaceExpressions
+      expect(result instanceof FaceExpressions).toBe(true)
+      expect(result.angry).toBeGreaterThan(0.95)
     })
 
   })
@@ -36,70 +30,43 @@ describe('faceExpressionNet', () => {
     it('recognizes facial expressions for batch of image elements', async () => {
       const inputs = [imgElAngry, imgElSurprised]
 
-      const results = await faceExpressionNet.predictExpressions(inputs) as FaceExpressionPrediction[][]
+      const results = await faceExpressionNet.predictExpressions(inputs) as FaceExpressions[]
       expect(Array.isArray(results)).toBe(true)
       expect(results.length).toEqual(2)
 
       const [resultAngry, resultSurprised] = results
-
-      expect(Array.isArray(resultAngry)).toBe(true)
-      expect(resultAngry.length).toEqual(7)
-      expect(Array.isArray(resultSurprised)).toBe(true)
-      expect(resultSurprised.length).toEqual(7)
-
-      const angry = resultAngry.find(res => res.expression === 'angry') as FaceExpressionPrediction
-      const surprised = resultSurprised.find(res => res.expression === 'surprised') as FaceExpressionPrediction
-
-      expect(angry).not.toBeUndefined()
-      expect(angry.probability).toBeGreaterThan(0.95)
-      expect(surprised).not.toBeUndefined()
-      expect(surprised.probability).toBeGreaterThan(0.95)
+      expect(resultAngry instanceof FaceExpressions).toBe(true)
+      expect(resultSurprised instanceof FaceExpressions).toBe(true)
+      expect(resultAngry.angry).toBeGreaterThan(0.95)
+      expect(resultSurprised.surprised).toBeGreaterThan(0.95)
     })
 
-    it('computes face landmarks for batch of tf.Tensor3D', async () => {
-      const inputs = [imgElAngry, imgElSurprised].map(el => tf.fromPixels(createCanvasFromMedia(el)))
+    it('computes face expressions for batch of tf.Tensor3D', async () => {
+      const inputs = [imgElAngry, imgElSurprised].map(el => tf.browser.fromPixels(createCanvasFromMedia(el)))
 
-      const results = await faceExpressionNet.predictExpressions(inputs) as FaceExpressionPrediction[][]
+      const results = await faceExpressionNet.predictExpressions(inputs) as FaceExpressions[]
       expect(Array.isArray(results)).toBe(true)
       expect(results.length).toEqual(2)
 
       const [resultAngry, resultSurprised] = results
-
-      expect(Array.isArray(resultAngry)).toBe(true)
-      expect(resultAngry.length).toEqual(7)
-      expect(Array.isArray(resultSurprised)).toBe(true)
-      expect(resultSurprised.length).toEqual(7)
-
-      const angry = resultAngry.find(res => res.expression === 'angry') as FaceExpressionPrediction
-      const surprised = resultSurprised.find(res => res.expression === 'surprised') as FaceExpressionPrediction
-
-      expect(angry).not.toBeUndefined()
-      expect(angry.probability).toBeGreaterThan(0.95)
-      expect(surprised).not.toBeUndefined()
-      expect(surprised.probability).toBeGreaterThan(0.95)
+      expect(resultAngry instanceof FaceExpressions).toBe(true)
+      expect(resultSurprised instanceof FaceExpressions).toBe(true)
+      expect(resultAngry.angry).toBeGreaterThan(0.95)
+      expect(resultSurprised.surprised).toBeGreaterThan(0.95)
     })
 
-    it('computes face landmarks for batch of mixed inputs', async () => {
-      const inputs = [imgElAngry, tf.fromPixels(createCanvasFromMedia(imgElSurprised))]
+    it('computes face expressions for batch of mixed inputs', async () => {
+      const inputs = [imgElAngry, tf.browser.fromPixels(createCanvasFromMedia(imgElSurprised))]
 
-      const results = await faceExpressionNet.predictExpressions(inputs) as FaceExpressionPrediction[][]
+      const results = await faceExpressionNet.predictExpressions(inputs) as FaceExpressions[]
       expect(Array.isArray(results)).toBe(true)
       expect(results.length).toEqual(2)
 
       const [resultAngry, resultSurprised] = results
-
-      expect(Array.isArray(resultAngry)).toBe(true)
-      expect(resultAngry.length).toEqual(7)
-      expect(Array.isArray(resultSurprised)).toBe(true)
-      expect(resultSurprised.length).toEqual(7)
-
-      const angry = resultAngry.find(res => res.expression === 'angry') as FaceExpressionPrediction
-      const surprised = resultSurprised.find(res => res.expression === 'surprised') as FaceExpressionPrediction
-
-      expect(angry).not.toBeUndefined()
-      expect(angry.probability).toBeGreaterThan(0.95)
-      expect(surprised).not.toBeUndefined()
-      expect(surprised.probability).toBeGreaterThan(0.95)
+      expect(resultAngry instanceof FaceExpressions).toBe(true)
+      expect(resultSurprised instanceof FaceExpressions).toBe(true)
+      expect(resultAngry.angry).toBeGreaterThan(0.95)
+      expect(resultSurprised.surprised).toBeGreaterThan(0.95)
     })
 
   })
@@ -125,7 +92,7 @@ describe('faceExpressionNet', () => {
       })
 
       it('single tf.Tensor3D', async () => {
-        const tensor = tf.fromPixels(createCanvasFromMedia(imgElAngry))
+        const tensor = tf.browser.fromPixels(createCanvasFromMedia(imgElAngry))
 
         await expectAllTensorsReleased(async () => {
           const outTensor = await faceExpressionNet.forwardInput(await toNetInput(tensor))
@@ -136,7 +103,7 @@ describe('faceExpressionNet', () => {
       })
 
       it('multiple tf.Tensor3Ds', async () => {
-        const tensors = [imgElAngry, imgElAngry, imgElAngry].map(el => tf.fromPixels(createCanvasFromMedia(el)))
+        const tensors = [imgElAngry, imgElAngry, imgElAngry].map(el => tf.browser.fromPixels(createCanvasFromMedia(el)))
 
         await expectAllTensorsReleased(async () => {
           const outTensor = await faceExpressionNet.forwardInput(await toNetInput(tensors))
@@ -147,7 +114,7 @@ describe('faceExpressionNet', () => {
       })
 
       it('single batch size 1 tf.Tensor4Ds', async () => {
-        const tensor = tf.tidy(() => tf.fromPixels(createCanvasFromMedia(imgElAngry)).expandDims()) as tf.Tensor4D
+        const tensor = tf.tidy(() => tf.browser.fromPixels(createCanvasFromMedia(imgElAngry)).expandDims()) as tf.Tensor4D
 
         await expectAllTensorsReleased(async () => {
           const outTensor = await faceExpressionNet.forwardInput(await toNetInput(tensor))
@@ -159,7 +126,7 @@ describe('faceExpressionNet', () => {
 
       it('multiple batch size 1 tf.Tensor4Ds', async () => {
         const tensors = [imgElAngry, imgElAngry, imgElAngry]
-          .map(el => tf.tidy(() => tf.fromPixels(createCanvasFromMedia(el)).expandDims())) as tf.Tensor4D[]
+          .map(el => tf.tidy(() => tf.browser.fromPixels(createCanvasFromMedia(el)).expandDims())) as tf.Tensor4D[]
 
         await expectAllTensorsReleased(async () => {
           const outTensor = await faceExpressionNet.forwardInput(await toNetInput(tensors))
@@ -186,7 +153,7 @@ describe('faceExpressionNet', () => {
       })
 
       it('single tf.Tensor3D', async () => {
-        const tensor = tf.fromPixels(createCanvasFromMedia(imgElAngry))
+        const tensor = tf.browser.fromPixels(createCanvasFromMedia(imgElAngry))
 
         await expectAllTensorsReleased(async () => {
           await faceExpressionNet.predictExpressions(tensor)
@@ -196,7 +163,7 @@ describe('faceExpressionNet', () => {
       })
 
       it('multiple tf.Tensor3Ds', async () => {
-        const tensors = [imgElAngry, imgElAngry, imgElAngry].map(el => tf.fromPixels(createCanvasFromMedia(el)))
+        const tensors = [imgElAngry, imgElAngry, imgElAngry].map(el => tf.browser.fromPixels(createCanvasFromMedia(el)))
 
 
         await expectAllTensorsReleased(async () => {
@@ -207,7 +174,7 @@ describe('faceExpressionNet', () => {
       })
 
       it('single batch size 1 tf.Tensor4Ds', async () => {
-        const tensor = tf.tidy(() => tf.fromPixels(createCanvasFromMedia(imgElAngry)).expandDims()) as tf.Tensor4D
+        const tensor = tf.tidy(() => tf.browser.fromPixels(createCanvasFromMedia(imgElAngry)).expandDims()) as tf.Tensor4D
 
         await expectAllTensorsReleased(async () => {
           await faceExpressionNet.predictExpressions(tensor)
@@ -218,7 +185,7 @@ describe('faceExpressionNet', () => {
 
       it('multiple batch size 1 tf.Tensor4Ds', async () => {
         const tensors = [imgElAngry, imgElAngry, imgElAngry]
-          .map(el => tf.tidy(() => tf.fromPixels(createCanvasFromMedia(el)).expandDims())) as tf.Tensor4D[]
+          .map(el => tf.tidy(() => tf.browser.fromPixels(createCanvasFromMedia(el)).expandDims())) as tf.Tensor4D[]
 
         await expectAllTensorsReleased(async () => {
           await faceExpressionNet.predictExpressions(tensors)

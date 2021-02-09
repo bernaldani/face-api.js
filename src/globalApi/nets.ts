@@ -1,10 +1,11 @@
-import { TfjsImageRecognitionBase, TNetInput } from 'tfjs-image-recognition-base';
-
+import { AgeGenderNet } from '../ageGenderNet/AgeGenderNet';
+import { AgeAndGenderPrediction } from '../ageGenderNet/types';
 import { FaceDetection } from '../classes/FaceDetection';
 import { FaceLandmarks5 } from '../classes/FaceLandmarks5';
 import { FaceLandmarks68 } from '../classes/FaceLandmarks68';
+import { TNetInput } from '../dom';
 import { FaceExpressionNet } from '../faceExpressionNet/FaceExpressionNet';
-import { FaceExpressionPrediction } from '../faceExpressionNet/types';
+import { FaceExpressions } from '../faceExpressionNet/FaceExpressions';
 import { FaceLandmark68Net } from '../faceLandmarkNet/FaceLandmark68Net';
 import { FaceLandmark68TinyNet } from '../faceLandmarkNet/FaceLandmark68TinyNet';
 import { FaceRecognitionNet } from '../faceRecognitionNet/FaceRecognitionNet';
@@ -16,7 +17,7 @@ import { SsdMobilenetv1 } from '../ssdMobilenetv1/SsdMobilenetv1';
 import { SsdMobilenetv1Options } from '../ssdMobilenetv1/SsdMobilenetv1Options';
 import { TinyFaceDetector } from '../tinyFaceDetector/TinyFaceDetector';
 import { TinyFaceDetectorOptions } from '../tinyFaceDetector/TinyFaceDetectorOptions';
-import { TinyYolov2 } from '../tinyYolov2';
+import { ITinyYolov2Options, TinyYolov2 } from '../tinyYolov2';
 
 export const nets = {
   ssdMobilenetv1: new SsdMobilenetv1(),
@@ -26,7 +27,8 @@ export const nets = {
   faceLandmark68Net: new FaceLandmark68Net(),
   faceLandmark68TinyNet: new FaceLandmark68TinyNet(),
   faceRecognitionNet: new FaceRecognitionNet(),
-  faceExpressionNet: new FaceExpressionNet()
+  faceExpressionNet: new FaceExpressionNet(),
+  ageGenderNet: new AgeGenderNet()
 }
 
 /**
@@ -56,7 +58,7 @@ export const tinyFaceDetector = (input: TNetInput, options: TinyFaceDetectorOpti
  * @param options (optional, default: see TinyYolov2Options constructor for default parameters).
  * @returns Bounding box of each face with score.
  */
-export const tinyYolov2 = (input: TNetInput, options: TfjsImageRecognitionBase.ITinyYolov2Options): Promise<FaceDetection[]> =>
+export const tinyYolov2 = (input: TNetInput, options: ITinyYolov2Options): Promise<FaceDetection[]> =>
   nets.tinyYolov2.locateFaces(input, options)
 
 /**
@@ -107,15 +109,24 @@ export const computeFaceDescriptor = (input: TNetInput): Promise<Float32Array | 
 
 
 /**
- * Recognizes the facial expressions of a face and returns the likelyhood of
- * each facial expression.
+ * Recognizes the facial expressions from a face image.
  *
  * @param inputs The face image extracted from the bounding box of a face. Can
  * also be an array of input images, which will be batch processed.
- * @returns An array of facial expressions with corresponding probabilities or array thereof in case of batch input.
+ * @returns Facial expressions with corresponding probabilities or array thereof in case of batch input.
  */
-export const recognizeFaceExpressions = (input: TNetInput): Promise<FaceExpressionPrediction[] | FaceExpressionPrediction[][]> =>
+export const recognizeFaceExpressions = (input: TNetInput): Promise<FaceExpressions | FaceExpressions[]> =>
   nets.faceExpressionNet.predictExpressions(input)
+
+/**
+ * Predicts age and gender from a face image.
+ *
+ * @param inputs The face image extracted from the bounding box of a face. Can
+ * also be an array of input images, which will be batch processed.
+ * @returns Predictions with age, gender and gender probability or array thereof in case of batch input.
+ */
+export const predictAgeAndGender = (input: TNetInput): Promise<AgeAndGenderPrediction | AgeAndGenderPrediction[]> =>
+  nets.ageGenderNet.predictAgeAndGender(input)
 
 export const loadSsdMobilenetv1Model = (url: string) => nets.ssdMobilenetv1.load(url)
 export const loadTinyFaceDetectorModel = (url: string) => nets.tinyFaceDetector.load(url)
@@ -125,6 +136,7 @@ export const loadFaceLandmarkModel = (url: string) => nets.faceLandmark68Net.loa
 export const loadFaceLandmarkTinyModel = (url: string) => nets.faceLandmark68TinyNet.load(url)
 export const loadFaceRecognitionModel = (url: string) => nets.faceRecognitionNet.load(url)
 export const loadFaceExpressionModel = (url: string) => nets.faceExpressionNet.load(url)
+export const loadAgeGenderModel = (url: string) => nets.ageGenderNet.load(url)
 
 // backward compatibility
 export const loadFaceDetectionModel = loadSsdMobilenetv1Model

@@ -1,30 +1,13 @@
 import * as faceapi from '../../../src';
-import { describeWithNets, expectAllTensorsReleased, assembleExpectedFullFaceDescriptions, ExpectedFullFaceDescription } from '../../utils';
+import { describeWithNets, expectAllTensorsReleased, assembleExpectedFullFaceDescriptions, ExpectedFullFaceDescription, describeWithBackend } from '../../utils';
 import { TinyFaceDetectorOptions } from '../../../src';
 import { expectFaceDetections } from '../../expectFaceDetections';
 import { expectFullFaceDescriptions } from '../../expectFullFaceDescriptions';
 import { expectFaceDetectionsWithLandmarks } from '../../expectFaceDetectionsWithLandmarks';
-import { expectedTinyFaceDetectorBoxes } from './expectedBoxes';
-import { loadImage } from '../../env';
-import { FaceExpressionPrediction } from '../../../src/faceExpressionNet/types';
-import { WithFaceExpressions } from '../../../src/factories/WithFaceExpressions';
+import { expectedTinyFaceDetectorBoxes } from '../../expectedTinyFaceDetectorBoxes';
+import { getTestEnv } from '../../env';
 
-function expectFaceExpressions(results: WithFaceExpressions<{}>[]) {
-  results.forEach((result, i) => {
-    const happy = result.expressions.find(res => res.expression === 'happy') as FaceExpressionPrediction
-    const neutral = result.expressions.find(res => res.expression === 'neutral') as FaceExpressionPrediction
-
-    const happyProb = i === 4 ? 0 : 0.95
-    const neutralProb = i === 4 ? 0.4 : 0
-
-    expect(happy).not.toBeUndefined()
-    expect(neutral).not.toBeUndefined()
-    expect(happy.probability).toBeGreaterThanOrEqual(happyProb)
-    expect(neutral.probability).toBeGreaterThanOrEqual(neutralProb)
-  })
-}
-
-describe('tinyFaceDetector', () => {
+describeWithBackend('tinyFaceDetector', () => {
 
   let imgEl: HTMLImageElement
   let expectedFullFaceDescriptions: ExpectedFullFaceDescription[]
@@ -37,11 +20,11 @@ describe('tinyFaceDetector', () => {
   }
 
   beforeAll(async () => {
-    imgEl = await loadImage('test/images/faces.jpg')
+    imgEl = await getTestEnv().loadImage('test/images/faces.jpg')
     expectedFullFaceDescriptions = await assembleExpectedFullFaceDescriptions(expectedTinyFaceDetectorBoxes)
   })
 
-  describeWithNets('globalApi', { withAllFacesTinyFaceDetector: true, withFaceExpressionNet: { quantized: true } }, () => {
+  describeWithNets('tinyFaceDetector', { withAllFacesTinyFaceDetector: true, withFaceExpressionNet: { quantized: true } }, () => {
 
     describe('detectAllFaces', () => {
 
@@ -69,34 +52,6 @@ describe('tinyFaceDetector', () => {
         expectFaceDetectionsWithLandmarks(results, expectedFullFaceDescriptions, expectedScores, deltas)
       })
 
-      it('detectAllFaces.withFaceExpressions()', async () => {
-        const options = new TinyFaceDetectorOptions({
-          inputSize: 416
-        })
-
-        const results = await faceapi
-          .detectAllFaces(imgEl, options)
-          .withFaceExpressions()
-
-        expect(results.length).toEqual(6)
-        expectFaceExpressions(results)
-      })
-
-      it('detectAllFaces.withFaceExpressions().withFaceLandmarks()', async () => {
-        const options = new TinyFaceDetectorOptions({
-          inputSize: 416
-        })
-
-        const results = await faceapi
-          .detectAllFaces(imgEl, options)
-          .withFaceExpressions()
-          .withFaceLandmarks()
-
-        expect(results.length).toEqual(6)
-        expectFaceExpressions(results)
-        expectFaceDetectionsWithLandmarks(results, expectedFullFaceDescriptions, expectedScores, deltas)
-      })
-
       it('detectAllFaces.withFaceLandmarks().withFaceDescriptors()', async () => {
         const options = new TinyFaceDetectorOptions({
           inputSize: 416
@@ -108,22 +63,6 @@ describe('tinyFaceDetector', () => {
           .withFaceDescriptors()
 
         expect(results.length).toEqual(6)
-        expectFullFaceDescriptions(results, expectedFullFaceDescriptions, expectedScores, deltas)
-      })
-
-      it('detectAllFaces.withFaceLandmarks().withFaceExpressions()withFaceDescriptors()', async () => {
-        const options = new TinyFaceDetectorOptions({
-          inputSize: 416
-        })
-
-        const results = await faceapi
-          .detectAllFaces(imgEl, options)
-          .withFaceExpressions()
-          .withFaceLandmarks()
-          .withFaceDescriptors()
-
-        expect(results.length).toEqual(6)
-        expectFaceExpressions(results)
         expectFullFaceDescriptions(results, expectedFullFaceDescriptions, expectedScores, deltas)
       })
 
@@ -167,48 +106,6 @@ describe('tinyFaceDetector', () => {
         )
       })
 
-      it('detectSingleFace.withFaceExpressions()', async () => {
-        const options = new TinyFaceDetectorOptions({
-          inputSize: 416
-        })
-
-        const result = await faceapi
-          .detectSingleFace(imgEl, options)
-          .withFaceExpressions()
-
-        expect(!!result).toBeTruthy()
-        expectFaceDetections(
-          result ? [result.detection] : [],
-          [expectedTinyFaceDetectorBoxes[2]],
-          [expectedScores[2]],
-          deltas.maxScoreDelta,
-          deltas.maxBoxDelta
-        )
-        result && expect((result.expressions.find(res => res.expression === 'happy') as FaceExpressionPrediction).probability)
-          .toBeGreaterThanOrEqual(0.95)
-      })
-
-      it('detectSingleFace.withFaceExpressions().withFaceLandmarks()', async () => {
-        const options = new TinyFaceDetectorOptions({
-          inputSize: 416
-        })
-
-        const result = await faceapi
-          .detectSingleFace(imgEl, options)
-          .withFaceExpressions()
-          .withFaceLandmarks()
-
-        expect(!!result).toBeTruthy()
-        expectFaceDetectionsWithLandmarks(
-          result ? [result] : [],
-          [expectedFullFaceDescriptions[2]],
-          [expectedScores[2]],
-          deltas
-        )
-        result && expect((result.expressions.find(res => res.expression === 'happy') as FaceExpressionPrediction).probability)
-          .toBeGreaterThanOrEqual(0.95)
-      })
-
       it('detectSingleFace.withFaceLandmarks().withFaceDescriptor()', async () => {
         const options = new TinyFaceDetectorOptions({
           inputSize: 416
@@ -226,28 +123,6 @@ describe('tinyFaceDetector', () => {
           [expectedScores[2]],
           deltas
         )
-      })
-
-      it('detectSingleFace.withFaceExpressions().withFaceLandmarks().withFaceDescriptor()', async () => {
-        const options = new TinyFaceDetectorOptions({
-          inputSize: 416
-        })
-
-        const result = await faceapi
-          .detectSingleFace(imgEl, options)
-          .withFaceExpressions()
-          .withFaceLandmarks()
-          .withFaceDescriptor()
-
-        expect(!!result).toBeTruthy()
-        expectFullFaceDescriptions(
-          result ? [result] : [],
-          [expectedFullFaceDescriptions[2]],
-          [expectedScores[2]],
-          deltas
-        )
-        result && expect((result.expressions.find(res => res.expression === 'happy') as FaceExpressionPrediction).probability)
-          .toBeGreaterThanOrEqual(0.95)
       })
 
     })

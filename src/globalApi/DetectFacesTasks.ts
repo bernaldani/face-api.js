@@ -1,14 +1,15 @@
-import { TfjsImageRecognitionBase, TNetInput } from 'tfjs-image-recognition-base';
-
 import { FaceDetection } from '../classes/FaceDetection';
+import { TNetInput } from '../dom';
 import { extendWithFaceDetection, WithFaceDetection } from '../factories/WithFaceDetection';
 import { MtcnnOptions } from '../mtcnn/MtcnnOptions';
 import { SsdMobilenetv1Options } from '../ssdMobilenetv1/SsdMobilenetv1Options';
 import { TinyFaceDetectorOptions } from '../tinyFaceDetector/TinyFaceDetectorOptions';
+import { TinyYolov2Options } from '../tinyYolov2';
 import { ComposableTask } from './ComposableTask';
 import { DetectAllFaceLandmarksTask, DetectSingleFaceLandmarksTask } from './DetectFaceLandmarksTasks';
 import { nets } from './nets';
-import { PredictAllFaceExpressionsTask, PredictSingleFaceExpressionTask } from './PredictFaceExpressionsTask';
+import { PredictAllAgeAndGenderTask, PredictSingleAgeAndGenderTask } from './PredictAgeAndGenderTask';
+import { PredictAllFaceExpressionsTask, PredictSingleFaceExpressionsTask } from './PredictFaceExpressionsTask';
 import { FaceDetectionOptions } from './types';
 
 export class DetectFacesTaskBase<TReturn> extends ComposableTask<TReturn> {
@@ -37,7 +38,7 @@ export class DetectAllFacesTask extends DetectFacesTaskBase<FaceDetection[]> {
         options instanceof SsdMobilenetv1Options
           ? (input: TNetInput) => nets.ssdMobilenetv1.locateFaces(input, options)
           : (
-            options instanceof TfjsImageRecognitionBase.TinyYolov2Options
+            options instanceof TinyYolov2Options
               ? (input: TNetInput) => nets.tinyYolov2.locateFaces(input, options)
               : null
           )
@@ -57,16 +58,23 @@ export class DetectAllFacesTask extends DetectFacesTaskBase<FaceDetection[]> {
     })
   }
 
-  withFaceLandmarks(useTinyLandmarkNet: boolean = false): DetectAllFaceLandmarksTask<WithFaceDetection<{}>> {
-    return new DetectAllFaceLandmarksTask<WithFaceDetection<{}>>(
+  withFaceLandmarks(useTinyLandmarkNet: boolean = false) {
+    return new DetectAllFaceLandmarksTask(
       this.runAndExtendWithFaceDetections(),
       this.input,
       useTinyLandmarkNet
     )
   }
 
-  withFaceExpressions(): PredictAllFaceExpressionsTask<WithFaceDetection<{}>> {
-    return new PredictAllFaceExpressionsTask<WithFaceDetection<{}>>(
+  withFaceExpressions() {
+    return new PredictAllFaceExpressionsTask (
+      this.runAndExtendWithFaceDetections(),
+      this.input
+    )
+  }
+
+  withAgeAndGender() {
+    return new PredictAllAgeAndGenderTask(
       this.runAndExtendWithFaceDetections(),
       this.input
     )
@@ -93,19 +101,25 @@ export class DetectSingleFaceTask extends DetectFacesTaskBase<FaceDetection | un
     })
   }
 
-  withFaceLandmarks(useTinyLandmarkNet: boolean = false): DetectSingleFaceLandmarksTask<WithFaceDetection<{}>> {
-    return new DetectSingleFaceLandmarksTask<WithFaceDetection<{}>>(
+  withFaceLandmarks(useTinyLandmarkNet: boolean = false) {
+    return new DetectSingleFaceLandmarksTask(
       this.runAndExtendWithFaceDetection(),
       this.input,
       useTinyLandmarkNet
     )
   }
 
-  withFaceExpressions(): PredictSingleFaceExpressionTask<WithFaceDetection<{}>> {
-    return new PredictSingleFaceExpressionTask<WithFaceDetection<{}>>(
+  withFaceExpressions() {
+    return new PredictSingleFaceExpressionsTask(
       this.runAndExtendWithFaceDetection(),
       this.input
     )
   }
 
+  withAgeAndGender() {
+    return new PredictSingleAgeAndGenderTask(
+      this.runAndExtendWithFaceDetection(),
+      this.input
+    )
+  }
 }

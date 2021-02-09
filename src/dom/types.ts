@@ -1,21 +1,11 @@
-import { IPoint, IRect } from 'tfjs-image-recognition-base';
+import * as tf from '@tensorflow/tfjs-core';
 
-import { WithFaceExpressions } from '../factories/WithFaceExpressions';
+import { NetInput } from './NetInput';
 
-export type DrawLandmarksOptions = {
-  lineWidth?: number
-  color?: string
-  drawLines?: boolean
-}
+export type TMediaElement = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
 
-export type DrawFaceExpressionsOptions = {
-  primaryColor?: string
-  secondaryColor?: string
-  primaryFontSize?: number
-  secondaryFontSize?: number
-  minConfidence?: number
-}
+export type TResolvedNetInput = TMediaElement | tf.Tensor3D | tf.Tensor4D
 
-export type DrawFaceExpressionsInput = WithFaceExpressions<{
-  position: IPoint | IRect
-}>
+export type TNetInputArg = string | TResolvedNetInput
+
+export type TNetInput = TNetInputArg | Array<TNetInputArg> | NetInput | tf.Tensor4D
